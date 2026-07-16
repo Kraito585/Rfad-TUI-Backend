@@ -1,5 +1,3 @@
-# Секреты и конфиги
-config.yml
 *.pem
 credentials.json
 .env

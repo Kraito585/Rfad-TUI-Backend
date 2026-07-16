@@ -87,39 +87,43 @@ func (r *WorkerRepository) GetLatestInternalVersion(ctx context.Context) (string
 
 // MirrorZipToS3 перекачивает архив с Google Drive в S3
 func (r *WorkerRepository) MirrorZipToS3(ctx context.Context) (string, error) {
-	ctx, span := workerRepoTracer.Start(ctx, "worker_repository.MirrorZipToS3")
-	defer span.End()
+    ctx, span := workerRepoTracer.Start(ctx, "worker_repository.MirrorZipToS3")
+    defer span.End()
 
-	srv, err := drive.NewService(ctx, option.WithCredentialsFile(r.credentialsFile))
-	if err != nil {
-		return "", fmt.Errorf("ошибка GDrive клиента: %w", err)
-	}
+    srv, err := drive.NewService(ctx, option.WithCredentialsFile(r.credentialsFile))
+    if err != nil {
+        return "", fmt.Errorf("ошибка GDrive клиента: %w", err)
+    }
 
-	query := fmt.Sprintf("'%s' in parents and mimeType contains 'zip' and trashed = false", gDriveDir)
-	fileList, err := srv.Files.List().
-		Q(query).OrderBy("createdTime desc").PageSize(1).Fields("files(id, name)").Do()
-	if err != nil {
-		return "", fmt.Errorf("ошибка поиска файла: %w", err)
-	}
+    query := fmt.Sprintf("'%s' in parents and mimeType contains 'zip' and trashed = false", gDriveDir)
+    fileList, err := srv.Files.List().
+        Q(query).OrderBy("createdTime desc").PageSize(1).Fields("files(id, name)").Do()
+    if err != nil {
+        return "", fmt.Errorf("ошибка поиска файла: %w", err)
+    }
 
-	if len(fileList.Files) == 0 {
-		return "", fmt.Errorf("в папке не найдено ZIP архивов")
-	}
+    if len(fileList.Files) == 0 {
+        return "", fmt.Errorf("в папке не найдено ZIP архивов")
+    }
 
-	targetFile := fileList.Files[0]
+    targetFile := fileList.Files[0]
 
-	downloadResp, err := srv.Files.Get(targetFile.Id).Download()
-	if err != nil {
-		return "", fmt.Errorf("ошибка скачивания: %w", err)
-	}
-	defer downloadResp.Body.Close()
+    downloadResp, err := srv.Files.Get(targetFile.Id).Download()
+    if err != nil {
+        return "", fmt.Errorf("ошибка скачивания: %w", err)
+    }
+    defer downloadResp.Body.Close()
 
-	err = r.s3Client.Upload(ctx, targetFile.Name, downloadResp.Body, "application/zip")
-	if err != nil {
-		return "", fmt.Errorf("ошибка загрузки в S3: %w", err)
-	}
+    newFileName := fmt.Sprintf("%s.zip", uuid.New().String())
+    
+    s3Key := fmt.Sprintf("rfad/%s", newFileName)
 
-	return targetFile.Name, nil
+    err = r.s3Client.Upload(ctx, s3Key, downloadResp.Body, "application/zip")
+    if err != nil {
+        return "", fmt.Errorf("ошибка загрузки в S3: %w", err)
+    }
+
+    return s3Key, nil
 }
 
 // SaveUpdate сохраняет запись о версии в БД
