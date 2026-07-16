@@ -1,0 +1,17 @@
+steps:
+  test-and-build:
+    image: golang:1.22-alpine # Укажите версию Go, которую используете
+    commands:
+      # Загружаем зависимости
+      - go mod download
+      # Запускаем тесты (если есть)
+      - go test ./...
+      # Проверяем, что проект компилируется
+      - go build -v ./...
+
+# Условия запуска пайплайна
+when:
+  - event: pull_request
+    branch: main
+  - event: push
+    branch: main

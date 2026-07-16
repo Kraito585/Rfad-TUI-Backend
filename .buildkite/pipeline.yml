@@ -1,8 +1,0 @@
-steps:
-  - label: "Build Go API"
-    command: "docker build -t kraito-api:${BUILDKITE_COMMIT} ."
-
-  - label: "Run Jest Integration Tests"
-    command: |
-      docker compose -f docker-compose.test.yml up --build --exit-code-from jest
-      docker compose -f docker-compose.test.yml down
