@@ -3,21 +3,19 @@
 # ==========================================
 FROM golang:1.25-alpine AS builder
 
-# Устанавливаем зависимости ОС, которые могут понадобиться для сборки
+# Устанавливаем зависимости ОС
 RUN apk add --no-cache git
 
 WORKDIR /app
 
-# Сначала копируем только файлы зависимостей для кэширования слоя
+# Кэшируем модули
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Копируем весь остальной исходный код
+# Копируем исходный код
 COPY . .
 
-# Собираем бинарник. 
-# CGO_ENABLED=0 отключает C-библиотеки, делая бинарник полностью статичным.
-# Если твой main.go лежит не в корне, а в cmd/api, замени "." на "./cmd/api"
+# Собираем бинарник (оставил имя auth-service, как было у вас)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/auth-service ./cmd/api
 
 # ==========================================
@@ -27,22 +25,30 @@ FROM alpine:latest
 
 WORKDIR /app
 
-# Добавляем корневые сертификаты (критически важно для HTTPS и подключения к Kafka с SSL)
-# и tzdata для правильной работы со временем
-RUN apk --no-cache add ca-certificates tzdata
+# Добавляем сертификаты, tzdata и openssl (для генерации JWT ключей)
+RUN apk --no-cache add ca-certificates tzdata openssl
 
-# Копируем готовый бинарник из первого этапа
+# Копируем бинарник, миграции и конфиг
 COPY --from=builder /bin/auth-service ./auth-service
-
-# ВАЖНО: Копируем папку с миграциями, чтобы хендлер RecreateDatabase ее нашел!
 COPY migrations/ ./migrations/
+COPY config.yml ./config.yml
+COPY credentials.json ./credentials.json 
 
-# Если тебе нужен .env файл внутри контейнера, раскомментируй строку ниже.
-# Но обычно в проде переменные передаются через docker-compose (environment:)
-# COPY .env .env
+# Создаем скрипт инициализации (Entrypoint) прямо внутри Dockerfile
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'mkdir -p ./config/certs' >> /app/entrypoint.sh && \
+    echo 'if [ ! -f "./config/certs/private.pem" ]; then' >> /app/entrypoint.sh && \
+    echo '  echo "🔑 RSA ключи не найдены. Генерируем новые..."' >> /app/entrypoint.sh && \
+    echo '  openssl genpkey -algorithm RSA -out ./config/certs/private.pem -pkeyopt rsa_keygen_bits:2048 2>/dev/null' >> /app/entrypoint.sh && \
+    echo '  openssl rsa -pubout -in ./config/certs/private.pem -out ./config/certs/public.pem 2>/dev/null' >> /app/entrypoint.sh && \
+    echo '  echo "✅ Ключи успешно сгенерированы."' >> /app/entrypoint.sh && \
+    echo 'fi' >> /app/entrypoint.sh && \
+    echo 'exec "$@"' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
-# Открываем порт, на котором работает твой Fiber (судя по твоим логам, это 7912)
-EXPOSE 7912
+# Обновленный порт из вашего config.yml
+EXPOSE 7910
 
-# Команда запуска
+# Указываем скрипт как точку входа, а сам бинарник как аргумент
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["./auth-service"]
