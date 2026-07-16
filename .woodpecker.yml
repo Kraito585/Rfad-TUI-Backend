@@ -1,6 +1,6 @@
 steps:
   test-and-build:
-    image: golang:1.22-alpine # Укажите версию Go, которую используете
+    image: golang:1.25-alpine # Укажите версию Go, которую используете
     commands:
       # Загружаем зависимости
       - go mod download
