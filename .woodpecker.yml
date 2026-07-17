@@ -1,6 +1,9 @@
 steps:
   test:
     image: golang:1.25-alpine
+    when:
+      - event: [push, pull_request]
+        branch: main
     commands:
       - go mod download
       - go test -v ./...
@@ -30,6 +33,3 @@ steps:
     when:
       branch: main
       event: push
-  when:
-    branch: main
-    event: push
