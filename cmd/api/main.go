@@ -37,7 +37,7 @@ func main() {
 	CoreHandler := corehandler.NewDefaultHandler(DefaultService)
 
 	credsFile := "credentials.json"
-	WorkerRepo := repository.NewWorkerRepository(ms.DBPool, ms.S3Storage, credsFile)
+	WorkerRepo := repository.NewWorkerRepository(ms.DBPool, ms.S3Storage, credsFile, ms.RedisClient)
 	WorkerSrv := service.NewWorkerService(WorkerRepo)
 
 	ms.StartWorkers(WorkerSrv, credsFile)

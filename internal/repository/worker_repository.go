@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	coreredis "Rfad-TUI-Backend/core/pkg/redis"
 	"Rfad-TUI-Backend/core/pkg/storage"
 
 	"github.com/google/uuid"
@@ -29,14 +31,16 @@ type WorkerRepository struct {
 	db              *pgxpool.Pool
 	s3Client        *storage.S3Client
 	credentialsFile string
+	r               *coreredis.Wrapper
 }
 
 // В конструктор передаем все внешние зависимости
-func NewWorkerRepository(db *pgxpool.Pool, s3Client *storage.S3Client, credsFile string) *WorkerRepository {
+func NewWorkerRepository(db *pgxpool.Pool, s3Client *storage.S3Client, credsFile string, r *coreredis.Wrapper) *WorkerRepository {
 	return &WorkerRepository{
 		db:              db,
 		s3Client:        s3Client,
 		credentialsFile: credsFile,
+		r:               r,
 	}
 }
 
@@ -82,69 +86,64 @@ func (r *WorkerRepository) GetLatestInternalVersion(ctx context.Context) (string
 		return "", fmt.Errorf("ошибка получения последней версии: %w", err)
 	}
 
-	lockKey := "worker:update_lock"
-    
-    // Используем ваш *redis.Client (предполагается, что он есть в WorkerRepository)
-    acquired, err := r.redisClient.SetNX(ctx, lockKey, "locked", 15*time.Minute).Result()
-    if err != nil {
-        slog.Error("Ошибка при попытке получить блокировку в Redis", slog.Any("error", err))
-        return
-    }
-
-    if !acquired {
-        // Блокировку взял другой контейнер
-        slog.Info("Другая реплика уже выполняет проверку обновлений. Пропускаем.")
-        return
-    }
-
 	return version, nil
 }
 
 // MirrorZipToS3 перекачивает архив с Google Drive в S3
 func (r *WorkerRepository) MirrorZipToS3(ctx context.Context) (string, error) {
-    ctx, span := workerRepoTracer.Start(ctx, "worker_repository.MirrorZipToS3")
-    defer span.End()
+	ctx, span := workerRepoTracer.Start(ctx, "worker_repository.MirrorZipToS3")
+	defer span.End()
 
-    srv, err := drive.NewService(ctx, option.WithCredentialsFile(r.credentialsFile))
-    if err != nil {
-        return "", fmt.Errorf("ошибка GDrive клиента: %w", err)
-    }
+	lockKey := "worker:update_lock"
 
-    query := fmt.Sprintf("'%s' in parents and mimeType contains 'zip' and trashed = false", gDriveDir)
-    fileList, err := srv.Files.List().
-        Q(query).OrderBy("createdTime desc").PageSize(1).Fields("files(id, name)").Do()
-    if err != nil {
-        return "", fmt.Errorf("ошибка поиска файла: %w", err)
-    }
+	acquired, err := r.r.SetNX(ctx, lockKey, "locked", 15*time.Minute).Result()
+	if err != nil {
+		return "", fmt.Errorf("ошибка Redis при захвате блокировки: %w", err)
+	}
+	if !acquired {
+		return "", errors.New("другая реплика уже выполняет MirrorZipToS3")
+	}
 
-    if len(fileList.Files) == 0 {
-        return "", fmt.Errorf("в папке не найдено ZIP архивов")
-    }
+	srv, err := drive.NewService(ctx, option.WithCredentialsFile(r.credentialsFile))
+	if err != nil {
+		return "", fmt.Errorf("ошибка GDrive клиента: %w", err)
+	}
 
-    targetFile := fileList.Files[0]
+	query := fmt.Sprintf("'%s' in parents and mimeType contains 'zip' and trashed = false", gDriveDir)
+	fileList, err := srv.Files.List().
+		Q(query).OrderBy("createdTime desc").PageSize(1).Fields("files(id, name)").Do()
+	if err != nil {
+		return "", fmt.Errorf("ошибка поиска файла: %w", err)
+	}
 
-    downloadResp, err := srv.Files.Get(targetFile.Id).Download()
-    if err != nil {
-        return "", fmt.Errorf("ошибка скачивания: %w", err)
-    }
-    defer downloadResp.Body.Close()
+	if len(fileList.Files) == 0 {
+		return "", fmt.Errorf("в папке не найдено ZIP архивов")
+	}
 
-    newFileName := fmt.Sprintf("%s.zip", uuid.New().String())
-    
-    s3Key := fmt.Sprintf("rfad/%s", newFileName)
+	targetFile := fileList.Files[0]
 
-    err = r.s3Client.Upload(ctx, s3Key, downloadResp.Body, "application/zip")
-    if err != nil {
-        return "", fmt.Errorf("ошибка загрузки в S3: %w", err)
-    }
+	downloadResp, err := srv.Files.Get(targetFile.Id).Download()
+	if err != nil {
+		return "", fmt.Errorf("ошибка скачивания: %w", err)
+	}
+	defer downloadResp.Body.Close()
 
-    return s3Key, nil
+	newFileName := fmt.Sprintf("%s.zip", uuid.New().String())
+
+	s3Key := fmt.Sprintf("rfad/%s", newFileName)
+
+	err = r.s3Client.Upload(ctx, s3Key, downloadResp.Body, "application/zip")
+	if err != nil {
+		return "", fmt.Errorf("ошибка загрузки в S3: %w", err)
+	}
+
+	return s3Key, nil
 }
 
 // SaveUpdate сохраняет запись о версии в БД
 func (r *WorkerRepository) SaveUpdate(ctx context.Context, id uuid.UUID, remoteVersion, url string) error {
 	lockKey := "worker:update_lock"
-	defer r.redisClient.Del(ctx, lockKey)
+	defer r.r.Del(ctx, lockKey)
 	ctx, span := workerRepoTracer.Start(ctx, "worker_repository.SaveUpdate")
 	defer span.End()
 

@@ -111,6 +111,11 @@ func (w *Wrapper) Incr(ctx context.Context, key string) *redis.IntCmd {
 	return w.writer.Incr(ctx, key)
 }
 
+// SetNX устанавливает ключ, только если он не существует
+func (w *Wrapper) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.BoolCmd {
+	return w.writer.SetNX(ctx, key, value, expiration)
+}
+
 // =========================
 // МЕТОДЫ ЧТЕНИЯ (Идут в Replicas)
 // =========================
