@@ -27,13 +27,17 @@ steps:
     privileged: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # МОНТИРУЕМ папки: <путь_на_хосте>:<путь_в_контейнере>
+      - /home/docker:/data
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
     commands:
       - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
-      - docker compose -f /home/docker/docker-compose.yml pull api
-      - docker compose -f /home/docker/docker-compose.yml up -d api
+      # Теперь утилита внутри контейнера обращается к файлу через /data/...
+      # но сам демон Docker на хосте применит изменения к вашей хост-машине!
+      - docker compose -f /data/docker-compose.yml pull api
+      - docker compose -f /data/docker-compose.yml up -d api
       - docker image prune -f
     when:
       - message:
