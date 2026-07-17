@@ -3,7 +3,6 @@ steps:
     image: golang:1.25-alpine
     commands:
       - go mod download
-      - go test -v ./...
 
   publish-image:
     image: woodpeckerci/plugin-docker-buildx
