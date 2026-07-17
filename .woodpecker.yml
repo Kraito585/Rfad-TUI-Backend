@@ -28,6 +28,9 @@ steps:
     privileged: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
     labels:
       env: prod
     commands:
