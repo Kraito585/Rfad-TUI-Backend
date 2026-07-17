@@ -1,1 +1,1 @@
-функция Upload в core/pkg/storage/s3.go
+текст ради комита
