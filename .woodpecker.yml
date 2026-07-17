@@ -1,20 +1,16 @@
 steps:
   test:
     image: golang:1.25-alpine
-    labels:
-      env: dev
-    when:
-      - event: [push, pull_request]
-        branch: main
     commands:
       - go mod download
       - go test -v ./...
+    when:
+      - message:
+          exclude: "*[test]*"
 
   publish-image:
     image: woodpeckerci/plugin-docker-buildx
     privileged: true
-    labels:
-      env: dev
     settings:
       registry: ghcr.io
       repo: ghcr.io/kraito585/rfad-tui-backend
@@ -22,6 +18,9 @@ steps:
       username: Kraito585
       password:
         from_secret: github_token
+    when:
+      - message:
+          exclude: "*[build]*"
 
   deploy:
     image: docker:cli
@@ -31,11 +30,15 @@ steps:
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
-    labels:
-      env: prod
-    commands: ## Зачем я только неиронку слушал?
+    commands:
+      - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
       - docker compose -f /home/docker/docker-compose.yml pull api
       - docker compose -f /home/docker/docker-compose.yml up -d api
+      - docker image prune -f
     when:
-      branch: main
-      event: push
+      - message:
+          exclude: "*[deploy]*"
+
+when:
+  event: push
+  branch: main
