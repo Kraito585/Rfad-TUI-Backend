@@ -35,7 +35,7 @@ steps:
       env: prod
     commands:
       - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
-      - cd /home/docker/app-code
+      - cd /home/docker/
       - docker compose pull api
       - docker compose up -d api
       - docker image prune -f

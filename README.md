@@ -1,7 +1,20 @@
-Бэкенд для [Rfad-TUI-Linux-Installer](https://github.com/Kraito585/Rfad-TUI-Linux-Installer)
+# Бэкенд для [Rfad-TUI-Linux-Installer](https://github.com/Kraito585/Rfad-TUI-Linux-Installer)
 
-Написан на моём кстомном бэкенд паке [go-core-cli](https://github.com/Kraito585/go-core-cli) который создовался для разработки под k8s и максимальную оптимизацию.
+## Road Map
+[x] Настроить атказаустойчивость сервера  -> [ ] Подготовить ⚙️API для удобноой загрузки кастомных патчей -> [ ] Возможно в будующем добавлю возможность работы с пользовательскими патчами.
+---
 
-На данный момент всё что он делает это перезаливает официальные обновления RFAD на моё S3 https://mirror.kraito.ru/ зеркало и отдаёт их через api запрос https://api.kraito.ru/api/v1/updates/latest.
+Релизованый функционал
+### Worker
+- Автомотическое создание заркала для [офицаильного патча RFAD](https://drive.google.com/drive/folders/1JUOctbsugh2IIEUCWcBkupXYVYoJMg4G)
+### API
+##### Тоже всё ещё не особо функциональный, но задача того не требует
+##### Ниже представлены примеры API на реальном адресе которые можно использовать в своих целях
+- https://api.kraito.ru/api/v1/updates/latest получения url последнего патча
+- https://api.kraito.ru/api/v1/community-shader/list массив объектов содержащий превью прессетов Community Shader и адрес загрузки (не реализован)
+---
 
-Позже он будет отдовать список прессетов для Community Shader с превюшками, а также отдовать обновления кастомному лаунчеру когда я его допишу.
+### Адресс загрузки не содержит адрес CDN: https://mirror.kraito.ru/ 
+
+---
+Написан на моём кстомном бэкенд паке [go-core-cli](https://github.com/Kraito585/go-core-cli) который создовался для разработки под k8s, максимальную оптимизацию и вертикальное маштабирование.
