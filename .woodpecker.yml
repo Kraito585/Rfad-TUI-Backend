@@ -5,7 +5,9 @@ steps:
       - go mod download
       - go test -v ./...
     when:
-      - message:
+      - event: push
+        branch: main
+        message:
           exclude: "*[test]*"
 
   publish-image:
@@ -19,7 +21,9 @@ steps:
       password:
         from_secret: github_token
     when:
-      - message:
+      - event: push
+        branch: main
+        message:
           exclude: "*[build]*"
 
   deploy:
@@ -40,9 +44,9 @@ steps:
       - docker compose -f /data/docker-compose.yml up -d api
       - docker image prune -f
     when:
-      - message:
+      - event: push
+        branch: main
+        message:
           exclude: "*[deploy]*"
 
-when:
-  event: push
-  branch: main
+  
