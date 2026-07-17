@@ -1,17 +1,14 @@
 steps:
-  # Шаг 1: Прогон тестов (оставляем, это хорошая практика)
   test:
     image: golang:1.25-alpine
     commands:
       - go mod download
       - go test -v ./...
 
-  # Шаг 2: Сборка и пуш в GitHub Packages
   publish-image:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       registry: ghcr.io
-      # ВАЖНО: Docker требует, чтобы название репозитория было строго строчными буквами!
       repo: ghcr.io/kraito585/rfad-tui-backend 
       tags: latest
       username: Kraito585
