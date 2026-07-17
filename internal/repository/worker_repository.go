@@ -94,16 +94,6 @@ func (r *WorkerRepository) MirrorZipToS3(ctx context.Context) (string, error) {
 	ctx, span := workerRepoTracer.Start(ctx, "worker_repository.MirrorZipToS3")
 	defer span.End()
 
-	lockKey := "worker:update_lock"
-
-	acquired, err := r.r.SetNX(ctx, lockKey, "locked", 15*time.Minute).Result()
-	if err != nil {
-		return "", fmt.Errorf("ошибка Redis при захвате блокировки: %w", err)
-	}
-	if !acquired {
-		return "", errors.New("другая реплика уже выполняет MirrorZipToS3")
-	}
-
 	srv, err := drive.NewService(ctx, option.WithCredentialsFile(r.credentialsFile))
 	if err != nil {
 		return "", fmt.Errorf("ошибка GDrive клиента: %w", err)
@@ -142,8 +132,6 @@ func (r *WorkerRepository) MirrorZipToS3(ctx context.Context) (string, error) {
 
 // SaveUpdate сохраняет запись о версии в БД
 func (r *WorkerRepository) SaveUpdate(ctx context.Context, id uuid.UUID, remoteVersion, url string) error {
-	lockKey := "worker:update_lock"
-	defer r.r.Del(ctx, lockKey)
 	ctx, span := workerRepoTracer.Start(ctx, "worker_repository.SaveUpdate")
 	defer span.End()
 
@@ -155,4 +143,14 @@ func (r *WorkerRepository) SaveUpdate(ctx context.Context, id uuid.UUID, remoteV
 	}
 
 	return nil
+}
+
+// AcquireLock пытается захватить распределенную блокировку
+func (r *WorkerRepository) AcquireLock(ctx context.Context) (bool, error) {
+	return r.r.SetNX(ctx, "worker:update_lock", "locked", 15*time.Minute).Result()
+}
+
+// ReleaseLock снимает распределенную блокировку
+func (r *WorkerRepository) ReleaseLock(ctx context.Context) error {
+	return r.r.Del(ctx, "worker:update_lock").Err()
 }
