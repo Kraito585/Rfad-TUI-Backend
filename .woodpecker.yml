@@ -34,8 +34,8 @@ steps:
     labels:
       env: prod
     commands: ## Зачем я только неиронку слушал?
-      - docker compose -f /home/docker/app-code/docker-compose.yml pull api
-      - docker compose -f /home/docker/app-code/docker-compose.yml up -d api
+      - docker compose -f /home/docker/docker-compose.yml pull api
+      - docker compose -f /home/docker/docker-compose.yml up -d api
     when:
       branch: main
       event: push
