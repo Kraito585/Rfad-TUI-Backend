@@ -30,3 +30,6 @@ steps:
     when:
       branch: main
       event: push
+  when:
+    branch: main
+    event: push
