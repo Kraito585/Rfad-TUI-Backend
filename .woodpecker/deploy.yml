@@ -1,0 +1,31 @@
+labels:
+  type: RFAD
+  env: prod
+
+depends_on:
+  - publish-image
+
+steps:
+  deploy:
+    image: docker:cli
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      # Логинимся в GHCR (токен должен быть в секретах Woodpecker)
+      - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
+      
+      # Переходим в папку, где лежит ваш docker-compose.yml
+      - cd /home/docker/app-code
+      
+      # Скачиваем свежий образ для конкретного сервиса
+      - docker compose pull api
+      
+      # Пересоздаем контейнер api (запустится новый образ, старый удалится)
+      - docker compose up -d api
+      
+      # Удаляем старые неиспользуемые образы, чтобы не забить диск
+      - docker image prune -f
+
+when:
+  - event: push
+    branch: main
