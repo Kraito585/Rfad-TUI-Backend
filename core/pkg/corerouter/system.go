@@ -42,7 +42,6 @@ func RegisterSystemRoutes(
 		})
 	})
 
-	//core:telemetry
 	if promEnabled {
 		promHandler := fasthttpadaptor.NewFastHTTPHandler(promhttp.Handler())
 
@@ -52,5 +51,4 @@ func RegisterSystemRoutes(
 			return nil
 		})
 	}
-	//core:telemetry:end
 }

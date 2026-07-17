@@ -82,6 +82,21 @@ func (r *WorkerRepository) GetLatestInternalVersion(ctx context.Context) (string
 		return "", fmt.Errorf("ошибка получения последней версии: %w", err)
 	}
 
+	lockKey := "worker:update_lock"
+    
+    // Используем ваш *redis.Client (предполагается, что он есть в WorkerRepository)
+    acquired, err := r.redisClient.SetNX(ctx, lockKey, "locked", 15*time.Minute).Result()
+    if err != nil {
+        slog.Error("Ошибка при попытке получить блокировку в Redis", slog.Any("error", err))
+        return
+    }
+
+    if !acquired {
+        // Блокировку взял другой контейнер
+        slog.Info("Другая реплика уже выполняет проверку обновлений. Пропускаем.")
+        return
+    }
+
 	return version, nil
 }
 
@@ -128,6 +143,8 @@ func (r *WorkerRepository) MirrorZipToS3(ctx context.Context) (string, error) {
 
 // SaveUpdate сохраняет запись о версии в БД
 func (r *WorkerRepository) SaveUpdate(ctx context.Context, id uuid.UUID, remoteVersion, url string) error {
+	lockKey := "worker:update_lock"
+	defer r.redisClient.Del(ctx, lockKey)
 	ctx, span := workerRepoTracer.Start(ctx, "worker_repository.SaveUpdate")
 	defer span.End()
 
