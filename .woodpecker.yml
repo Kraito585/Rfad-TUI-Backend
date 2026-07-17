@@ -33,12 +33,9 @@ steps:
         from_secret: github_token
     labels:
       env: prod
-    commands:
-      - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
-      - cd /home/docker/
-      - docker compose pull api
-      - docker compose up -d api
-      - docker image prune -f
+    commands: ## Зачем я только неиронку слушал?
+      - docker compose -f /home/docker/app-code/docker-compose.yml pull api
+      - docker compose -f /home/docker/app-code/docker-compose.yml up -d api
     when:
       branch: main
       event: push
