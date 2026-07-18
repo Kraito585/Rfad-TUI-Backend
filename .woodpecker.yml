@@ -7,8 +7,7 @@ steps:
     when:
       - event: push
         branch: main
-        message:
-          exclude: "*[test]*"
+        message: "^((?!\\[test\\]).)*$" # Выполнять, только если в коммите НЕТ [test]
 
   publish-image:
     image: woodpeckerci/plugin-docker-buildx
@@ -23,28 +22,28 @@ steps:
     when:
       - event: push
         branch: main
-        message:
-          exclude: "*[build]*"
+        message: "^((?!\\[build\\]).)*$" # Выполнять, только если в коммите НЕТ [build]
 
   deploy:
     image: docker:cli
     privileged: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # Теперь эта папка реально пробросится, так как агент знает о ней
+      - /home/docker:/data
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
     commands:
       - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
-      
-      - docker compose -f docker-compose.yml -p rfad pull api
-      - docker compose -f docker-compose.yml -p rfad up -d api
+      # Читаем файл из смонтированной папки /data/ внутри контейнера
+      - docker compose -f /data/docker-compose.yml pull api
+      - docker compose -f /data/docker-compose.yml up -d api
       - docker image prune -f
     when:
       - event: push
         branch: main
-        message:
-          exclude: "*[deploy]*"
+        message: "^((?!\\[deploy\\]).)*$" # Выполнять, только если в коммите НЕТ [deploy]
 
 when:
   event: push
