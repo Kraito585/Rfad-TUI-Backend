@@ -24,10 +24,11 @@ steps:
         branch: main
         evaluate: 'not (CI_COMMIT_MESSAGE contains "[build]")'
 
-  deploy:
+deploy:
     image: appleboy/drone-ssh
     settings:
-      host: kraito.ru
+      host:
+        from_secret: deploy_host
       username: deployer
       port: 22
       key:
