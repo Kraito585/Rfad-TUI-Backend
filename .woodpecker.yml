@@ -8,7 +8,6 @@ steps:
       - event: push
         branch: main
         message:
-          # ОДИНАРНЫЕ кавычки и слэши перед скобками
           exclude: '*\[test\]*'
 
   publish-image:
