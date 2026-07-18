@@ -24,7 +24,7 @@ steps:
         branch: main
         evaluate: 'not (CI_COMMIT_MESSAGE contains "[build]")'
 ## текст ради комита 
-deploy:
+  deploy:
     image: appleboy/drone-ssh
     settings:
       host:
