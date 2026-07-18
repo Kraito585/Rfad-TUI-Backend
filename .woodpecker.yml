@@ -7,8 +7,7 @@ steps:
     when:
       - event: push
         branch: main
-        message:
-          exclude: '*\[test\]*'
+        evaluate: 'not (CI_COMMIT_MESSAGE contains "[test]")'
 
   publish-image:
     image: woodpeckerci/plugin-docker-buildx
@@ -23,28 +22,25 @@ steps:
     when:
       - event: push
         branch: main
-        message:
-          exclude: '*\[build\]*'
+        evaluate: 'not (CI_COMMIT_MESSAGE contains "[build]")'
 
   deploy:
-    image: docker:cli
-    privileged: true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /home/docker:/data
+    image: appleboy/drone-ssh
+    settings:
+      host: kraito.ru
+      username: deployer
+      port: 22
+      key:
+        from_secret: deploy_ssh_key
+      script:
+        - echo $GITHUB_TOKEN | sudo /home/docker/deploy.sh
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
-    commands:
-      - echo $GITHUB_TOKEN | docker login ghcr.io -u Kraito585 --password-stdin
-      - docker compose -f /data/docker-compose.yml pull api
-      - docker compose -f /data/docker-compose.yml up -d api
-      - docker image prune -f
     when:
       - event: push
         branch: main
-        message:
-          exclude: '*\[deploy\]*'
+        evaluate: 'not (CI_COMMIT_MESSAGE contains "[deploy]")'
 
 when:
   event: push
