@@ -21,7 +21,6 @@ func TracingMiddleware(enabled bool) fiber.Handler {
 
 		start := time.Now()
 
-		// 👇 В новых версиях Fiber v3 используется обычный Context() (как у тебя и было!)
 		savedCtx := c.Context()
 
 		headers := c.GetReqHeaders()
@@ -41,7 +40,6 @@ func TracingMiddleware(enabled bool) fiber.Handler {
 			trace.WithSpanKind(trace.SpanKindServer),
 		)
 
-		// 👇 Возвращаем твой SetContext, он правильный!
 		c.SetContext(ctx)
 		defer c.SetContext(savedCtx)
 

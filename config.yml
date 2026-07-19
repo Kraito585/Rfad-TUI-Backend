@@ -115,7 +115,7 @@ prometheus:
   enabled: false
   secure: true
   user: "prom_scraper"
-  password: "v5mTsaqSgy+xBhX1trQIdjDN4foaESzHfN9JCgTVdes="
+  password: "qwJaJz/vAMavyl6uQAZBLeL9M7tdLvFOa+T65MHgKhg="
   service_name: "service_name"
 
 jaeger:
