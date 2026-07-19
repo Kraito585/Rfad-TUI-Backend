@@ -30,5 +30,14 @@ func SetupRoutes(
 			midManager.RateLimit("get_latest_update", 10, 1*time.Minute),
 			defaultHandler.GetLatestUpdate,
 		)
+		api.Get("/community/shaders",
+			midManager.RateLimit("Community_Shaders", 5, 30*time.Second),
+			defaultHandler.GetCommunityShaders,
+		)
+		api.Post("/community/shaders",
+			midManager.RateLimit("Community_Shaders_Admin", 100000000, 180*time.Minute),
+			midManager.AdminAuth(),
+			defaultHandler.UploadCommunityShader,
+		)
 	}
 }

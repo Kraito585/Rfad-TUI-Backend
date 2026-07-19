@@ -80,3 +80,17 @@ func (m *Manager) RateLimit(name string, max int, window time.Duration) fiber.Ha
 func (m *Manager) RequireAPIKey() fiber.Handler {
 	return pkgmiddleware.RequireAPIKey(m.redisClient)
 }
+
+func (m *Manager) AdminAuth() fiber.Handler {
+	return basicauth.New(basicauth.Config{
+		Users: map[string]string{
+			m.metricsUser: m.metricsPass,
+		},
+		Unauthorized: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"success": false,
+				"error":   "Доступ запрещен. Неверные учетные данные.",
+			})
+		},
+	})
+}

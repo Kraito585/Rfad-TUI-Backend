@@ -92,6 +92,7 @@ func NewBuilder(configPath string) *Builder {
 
 	fiberApp := fiber.New(fiber.Config{
 		ErrorHandler: response.GlobalErrorHandler,
+		BodyLimit:    500 * 1024 * 1024,
 	})
 
 	return &Builder{
