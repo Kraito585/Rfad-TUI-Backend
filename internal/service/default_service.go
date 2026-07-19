@@ -139,6 +139,7 @@ func (s *DefaultService) UploadPreset(
 		Metadata: model.Metadata{
 			OriginURL:      meta.OriginURL,
 			AuthorNickname: meta.AuthorNickname,
+			Description:    meta.Description, // <-- Добавили перенос описания
 			OptionalMods:   finalOptionalMods,
 		},
 	}

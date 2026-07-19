@@ -12,6 +12,7 @@ type UploadPresetMetadata struct {
 	OriginURL         string              `json:"originUrl"`
 	AuthorNickname    string              `json:"authorNickname"`
 	PerformanceImpact int16               `json:"performance_impact"`
+	Description       string              `json:"description"`
 	OptionalMods      []UploadOptionalMod `json:"optional_mods"`
 }
 
@@ -37,6 +38,7 @@ type CommunityShaderPreset struct {
 type Metadata struct {
 	OriginURL      string        `json:"originUrl"`
 	AuthorNickname string        `json:"authorNickname"`
+	Description    string        `json:"description"`
 	OptionalMods   []OptionalMod `json:"optional_mods"`
 }
 
