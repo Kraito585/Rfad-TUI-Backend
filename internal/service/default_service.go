@@ -152,8 +152,8 @@ func (s *DefaultService) UploadPreset(
 	return presetID, nil
 }
 
-func (s *DefaultService) UploadConfig(ctx context.Context, config []json.RawMessage) error {
-	err := s.repo.SaveConfig(ctx, config)
+func (s *DefaultService) UploadConfig(ctx context.Context, body []byte) error {
+	err := s.repo.SaveConfig(ctx, body)
 	if err != nil {
 		return fmt.Errorf("Ошибка сохранение конфига: %w", err)
 	}

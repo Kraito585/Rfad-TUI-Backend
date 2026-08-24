@@ -151,7 +151,7 @@ func (r *DefaultRepository) SavePreset(ctx context.Context, p model.CommunitySha
 	return nil
 }
 
-func (r *DefaultRepository) SaveConfig(ctx context.Context, config []json.RawMessage) error {
+func (r *DefaultRepository) SaveConfig(ctx context.Context, body []byte) error {
 	ctx, span := defaultRepoTracer.Start(ctx, "default_repository.SaveConfig")
 	defer span.End()
 
@@ -162,7 +162,7 @@ func (r *DefaultRepository) SaveConfig(ctx context.Context, config []json.RawMes
 
 	query := `INSERT INTO configs_patches (id, config) VALUES ($1, $2)`
 
-	_, err = r.db.Exec(ctx, query, UUID, config)
+	_, err = r.db.Exec(ctx, query, UUID, body)
 	if err != nil {
 		return fmt.Errorf("Ошибка сохранение конфига: %w", err)
 	}

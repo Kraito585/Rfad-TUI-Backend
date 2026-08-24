@@ -93,12 +93,9 @@ func (h *DefaultHandler) UploadConfig(c fiber.Ctx) error {
 	ctx, span := handlerTracer.Start(c.Context(), "handler.UploadConfig")
 	defer span.End()
 
-	var req model.UploadConfig
-	if err := c.Bind().JSON(&req); err != nil {
-		return response.Error(c, fiber.StatusBadRequest, "Неверный формат запроса", err.Error())
-	}
+	body := c.Body()
 
-	err := h.srv.UploadConfig(ctx, req.Config)
+	err := h.srv.UploadConfig(ctx, body)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Ошибка сохранения конфига", err.Error())
 	}
