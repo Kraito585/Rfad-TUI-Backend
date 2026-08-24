@@ -229,3 +229,45 @@ func (r *DefaultRepository) GetConfig(ctx context.Context) ([]json.RawMessage, e
 
 	return configs, nil
 }
+
+func (r *DefaultRepository) GetConfigsAdmin(ctx context.Context) ([]model.ConfigAdminResponse, error) {
+	ctx, span := defaultRepoTracer.Start(ctx, "default_repository.GetConfigsAdmin")
+	defer span.End()
+
+	// Запрашиваем нужные поля. ORDER BY created_at DESC вернет новые записи первыми
+	query := `
+        SELECT id, created_at, active, config 
+        FROM configs_patches 
+        ORDER BY created_at DESC
+    `
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса (админка): %w", err)
+	}
+	defer rows.Close()
+
+	var configs []model.ConfigAdminResponse
+
+	for rows.Next() {
+		var item model.ConfigAdminResponse
+
+		// Порядок переменных в Scan должен строго совпадать с порядком колонок в SELECT
+		if err := rows.Scan(&item.ID, &item.CreatedAt, &item.Active, &item.Config); err != nil {
+			return nil, fmt.Errorf("ошибка чтения строки админ-конфига: %w", err)
+		}
+
+		configs = append(configs, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка при итерации по строкам БД: %w", err)
+	}
+
+	// Возвращаем пустой массив [] вместо nil, если записей нет
+	if configs == nil {
+		configs = make([]model.ConfigAdminResponse, 0)
+	}
+
+	return configs, nil
+}

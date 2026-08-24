@@ -183,3 +183,11 @@ func (s *DefaultService) GetConfig(ctx context.Context) ([]json.RawMessage, erro
 	}
 	return configs, nil
 }
+
+func (s *DefaultService) GetConfigsAdmin(ctx context.Context) ([]model.ConfigAdminResponse, error) {
+	configs, err := s.repo.GetConfigsAdmin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения конфигов для админки: %w", err)
+	}
+	return configs, nil
+}

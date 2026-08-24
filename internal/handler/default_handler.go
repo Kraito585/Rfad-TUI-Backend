@@ -156,3 +156,18 @@ func (h *DefaultHandler) GetConfigs(c fiber.Ctx) error {
 		"data":    configs,
 	})
 }
+
+func (h *DefaultHandler) GetConfigsAdmin(c fiber.Ctx) error {
+	ctx, span := handlerTracer.Start(c.Context(), "handler.GetConfigsAdmin")
+	defer span.End()
+
+	configs, err := h.srv.GetConfigsAdmin(ctx)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Ошибка загрузки списка конфигов", err.Error())
+	}
+
+	return response.OK(c, fiber.Map{
+		"success": true,
+		"data":    configs,
+	})
+}
