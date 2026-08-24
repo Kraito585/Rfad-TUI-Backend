@@ -54,6 +54,11 @@ func SetupRoutes(
 			midManager.AdminAuth(),
 			defaultHandler.EnableConfig,
 		)
+		api.Get("/config/admin",
+			midManager.RateLimit("Community_Shaders_Admin", 20, 20*time.Minute),
+			midManager.AdminAuth(),
+			defaultHandler.GetConfigs,
+		)
 		api.Get("/config",
 			midManager.RateLimit("Community_Shaders_Admin", 20, 20*time.Minute),
 			defaultHandler.GetConfigs,

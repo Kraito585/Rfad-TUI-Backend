@@ -1,6 +1,9 @@
 package model
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type AppUpdate struct {
 	ID            string `json:"id"`
@@ -15,4 +18,11 @@ type UploadConfig struct {
 
 type SwitchConfig struct {
 	UUID string `json:"UUID"`
+}
+
+type ConfigAdminResponse struct {
+	ID        string          `json:"id"`
+	CreatedAt time.Time       `json:"created_at"`
+	Active    bool            `json:"active"`
+	Config    json.RawMessage `json:"config"`
 }
