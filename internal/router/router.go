@@ -35,9 +35,28 @@ func SetupRoutes(
 			defaultHandler.GetCommunityShaders,
 		)
 		api.Post("/community/shaders",
-			midManager.RateLimit("Community_Shaders_Admin", 100000000, 180*time.Minute),
+			midManager.RateLimit("Community_Shaders_Admin", 10, 5*time.Minute),
 			midManager.AdminAuth(),
 			defaultHandler.UploadCommunityShader,
+		)
+		api.Post("/save/config",
+			midManager.RateLimit("Community_Shaders_Admin", 10, 5*time.Minute),
+			midManager.AdminAuth(),
+			defaultHandler.UploadConfig,
+		)
+		api.Post("/disable/config",
+			midManager.RateLimit("Community_Shaders_Admin", 20, 5*time.Minute),
+			midManager.AdminAuth(),
+			defaultHandler.DisableConfig,
+		)
+		api.Post("/enable/config",
+			midManager.RateLimit("Community_Shaders_Admin", 20, 5*time.Minute),
+			midManager.AdminAuth(),
+			defaultHandler.EnableConfig,
+		)
+		api.Get("/config",
+			midManager.RateLimit("Community_Shaders_Admin", 20, 20*time.Minute),
+			defaultHandler.GetConfigs,
 		)
 	}
 }
