@@ -11,6 +11,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
@@ -148,4 +149,83 @@ func (r *DefaultRepository) SavePreset(ctx context.Context, p model.CommunitySha
 	}
 
 	return nil
+}
+
+func (r *DefaultRepository) SaveConfig(ctx context.Context, config []json.RawMessage) error {
+	ctx, span := defaultRepoTracer.Start(ctx, "default_repository.SaveConfig")
+	defer span.End()
+
+	UUID, err := uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("Ошибка генерации UUID: %w", err)
+	}
+
+	query := `INSERT INTO configs_patches (id, config) VALUES ($1, $2)`
+
+	_, err = r.db.Exec(ctx, query, UUID, config)
+	if err != nil {
+		return fmt.Errorf("Ошибка сохранение конфига: %w", err)
+	}
+
+	return nil
+}
+
+func (r *DefaultRepository) DisableConfig(ctx context.Context, UUID string) error {
+	ctx, span := defaultRepoTracer.Start(ctx, "default_repository.DisableConfig")
+	defer span.End()
+
+	query := `UPDATE configs_patches SET active = $1 WHERE id = $2`
+
+	_, err := r.db.Exec(ctx, query, false, UUID)
+	if err != nil {
+		return fmt.Errorf("не удалось отключить конфиг: %w", err)
+	}
+	return nil
+}
+
+func (r *DefaultRepository) EnableConfig(ctx context.Context, UUID string) error {
+	ctx, span := defaultRepoTracer.Start(ctx, "default_repository.EnableConfig")
+	defer span.End()
+
+	query := `UPDATE configs_patches SET active = $1 WHERE id = $2`
+
+	_, err := r.db.Exec(ctx, query, true, UUID)
+	if err != nil {
+		return fmt.Errorf("не удалось включить конфиг: %w", err)
+	}
+	return nil
+}
+
+func (r *DefaultRepository) GetConfig(ctx context.Context) ([]json.RawMessage, error) {
+	ctx, span := defaultRepoTracer.Start(ctx, "default_repository.GetConfig")
+	defer span.End()
+
+	query := `SELECT config FROM configs_patches WHERE active = true`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса на загрузку конфигов: %w", err)
+	}
+	defer rows.Close()
+
+	var configs []json.RawMessage
+
+	for rows.Next() {
+		var configData json.RawMessage
+		if err := rows.Scan(&configData); err != nil {
+			return nil, fmt.Errorf("ошибка чтения данных строки: %w", err)
+		}
+
+		configs = append(configs, configData)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка при итерации по строкам БД: %w", err)
+	}
+
+	if configs == nil {
+		configs = make([]json.RawMessage, 0)
+	}
+
+	return configs, nil
 }

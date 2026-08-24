@@ -88,3 +88,74 @@ func (h *DefaultHandler) UploadCommunityShader(c fiber.Ctx) error {
 		"id":      presetID.String(),
 	})
 }
+
+func (h *DefaultHandler) UploadConfig(c fiber.Ctx) error {
+	ctx, span := handlerTracer.Start(c.Context(), "handler.UploadConfig")
+	defer span.End()
+
+	var req model.UploadConfig
+	if err := c.Bind().JSON(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Неверный формат запроса", err.Error())
+	}
+
+	err := h.srv.UploadConfig(ctx, req.Config)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Ошибка сохранения конфига", err.Error())
+	}
+
+	return response.OK(c, fiber.Map{
+		"success": true,
+	})
+}
+
+func (h *DefaultHandler) DisableConfig(c fiber.Ctx) error {
+	ctx, span := handlerTracer.Start(c.Context(), "handler.DisableConfig")
+	defer span.End()
+
+	var req model.SwitchConfig
+	if err := c.Bind().JSON(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Неверный формат запроса", err.Error())
+	}
+
+	err := h.srv.DisableConfig(ctx, req.UUID)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Ошибка отключения конфига", err.Error())
+	}
+
+	return response.OK(c, fiber.Map{
+		"success": true,
+	})
+}
+
+func (h *DefaultHandler) EnableConfig(c fiber.Ctx) error {
+	ctx, span := handlerTracer.Start(c.Context(), "handler.EnableConfig")
+	defer span.End()
+
+	var req model.SwitchConfig
+	if err := c.Bind().JSON(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Неверный формат запроса", err.Error())
+	}
+
+	err := h.srv.EnableConfig(ctx, req.UUID)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Ошибка включение конфига", err.Error())
+	}
+
+	return response.OK(c, fiber.Map{
+		"success": true,
+	})
+}
+
+func (h *DefaultHandler) GetConfigs(c fiber.Ctx) error {
+	ctx, span := handlerTracer.Start(c.Context(), "handler.GetConfigs")
+	defer span.End()
+
+	configs, err := h.srv.GetConfig(ctx)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Ошибка получения конфигов", err.Error())
+	}
+	return response.OK(c, fiber.Map{
+		"success": true,
+		"data":    configs,
+	})
+}

@@ -5,6 +5,7 @@ import (
 	"Rfad-TUI-Backend/internal/model"
 	"Rfad-TUI-Backend/internal/repository"
 	"context"
+	"encoding/json"
 	"fmt"
 	"mime/multipart"
 
@@ -149,4 +150,36 @@ func (s *DefaultService) UploadPreset(
 	}
 
 	return presetID, nil
+}
+
+func (s *DefaultService) UploadConfig(ctx context.Context, config []json.RawMessage) error {
+	err := s.repo.SaveConfig(ctx, config)
+	if err != nil {
+		return fmt.Errorf("Ошибка сохранение конфига: %w", err)
+	}
+	return nil
+}
+
+func (s *DefaultService) DisableConfig(ctx context.Context, UUID string) error {
+	err := s.repo.DisableConfig(ctx, UUID)
+	if err != nil {
+		return fmt.Errorf("не удалось отключить конфиг: %w", err)
+	}
+	return nil
+}
+
+func (s *DefaultService) EnableConfig(ctx context.Context, UUID string) error {
+	err := s.repo.EnableConfig(ctx, UUID)
+	if err != nil {
+		return fmt.Errorf("не удалось включить конфиг: %w", err)
+	}
+	return nil
+}
+
+func (s *DefaultService) GetConfig(ctx context.Context) ([]json.RawMessage, error) {
+	configs, err := s.repo.GetConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения конфигов из БД: %w", err)
+	}
+	return configs, nil
 }
